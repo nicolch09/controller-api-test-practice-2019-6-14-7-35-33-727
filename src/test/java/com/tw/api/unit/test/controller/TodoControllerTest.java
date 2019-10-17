@@ -12,7 +12,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.client.MockMvcClientHttpRequestFactory;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -55,11 +54,11 @@ class TodoControllerTest {
     }
 
     @Test
-    void should_return_data_when_id_is_five() throws Exception {
+    void should_return_data_when_id_is_5() throws Exception {
         Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
         when(todoRepository.findById(5)).thenReturn(todo);
 
-        ResultActions result = mvc.perform(get("/todos/5" ));
+        ResultActions result = mvc.perform(get("/todos/{todo-id}", 5L));
 
         result.andExpect(status().isOk())
                 .andDo(print())
@@ -67,6 +66,16 @@ class TodoControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Test"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.completed", is(true)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.order").value(10));
+    }
+
+    @Test
+    void should_not_return_data_when_id_is_3() throws Exception {
+        Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
+        when(todoRepository.findById(5)).thenReturn(todo);
+
+        ResultActions result = mvc.perform(get("/todos/{todo-id}", 3L));
+
+        result.andExpect(status().isNotFound());
     }
 
     @Test
@@ -84,28 +93,70 @@ class TodoControllerTest {
     }
 
     @Test
-    void should_delete_the_data() throws Exception {
+    void should_delete_the_data_when_id_is_5() throws Exception {
         Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
         when(todoRepository.findById(5)).thenReturn(todo);
 
-        ResultActions result = mvc.perform(get("/todos/5" ));
+        ResultActions result = mvc.perform(delete("/todos/{todo-id}", 5L ));
 
         result.andExpect(status().isOk());
     }
 
     @Test
-    void should_update_the_data() throws Exception {
+    void should_not_delete_the_data_when_id_is_3() throws Exception {
+        Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
+        when(todoRepository.findById(5)).thenReturn(todo);
+
+        ResultActions result = mvc.perform(delete("/todos/{todo-id}", 3L ));
+
+        result.andExpect(status().isNotFound());
+    }
+
+    @Test
+    void should_update_the_data_when_id_is_5() throws Exception {
         Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
         Optional<Todo> updated = Optional.of(new Todo(5, "title", true, 10));
         when(todoRepository.findById(5)).thenReturn(todo);
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonValue = objectMapper.writeValueAsString(updated);
 
-        ResultActions result = mvc.perform(patch("/todos/5" )
+        ResultActions result = mvc.perform(patch("/todos/{todo-id}", 5L )
                 .content(jsonValue)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON));
 
         result.andExpect(status().isOk());
+    }
+
+    @Test
+    void should_not_update_the_data_when_id_is_3() throws Exception {
+        Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
+        Optional<Todo> updated = Optional.of(new Todo(5, "title", true, 10));
+        when(todoRepository.findById(5)).thenReturn(todo);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonValue = objectMapper.writeValueAsString(updated);
+
+        ResultActions result = mvc.perform(patch("/todos/{todo-id}", 3L )
+                .content(jsonValue)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isNotFound());
+    }
+
+    @Test
+    void should_not_update_the_data_when_url_is_invalid() throws Exception {
+        Optional<Todo> todo = Optional.of(new Todo(5, "Test", true, 10));
+        Optional<Todo> updated = Optional.of(null);
+        when(todoRepository.findById(5)).thenReturn(todo);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonValue = objectMapper.writeValueAsString(updated);
+
+        ResultActions result = mvc.perform(patch("/todos/{todo-id}", 5L )
+                .content(jsonValue)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isBadRequest());
     }
 }
